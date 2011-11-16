@@ -1,0 +1,59 @@
+= unicorn-tools
+
+rack アプリケーション用 http サーバー unicorn を動かすときに使うツール群
+
+
+== unicorn.config.rb
+
+unicorn の設定
+
+
+== unicorn_rails.init.sh
+
+unicorn 起動スクリプト
+
+起動、停止など、 unicorn_rails の起動に必要なコマンドを提供する
+
+pid ファイルから pid を読み込んで、シグナルを送信するラッパー
+
+開発環境(preload_app=false, class_cache=false)では start, stop, restart を使っていれば問題ない
+
+本番環境(preload_app=true, class_cache=true)では、 unicornctl.sh を使うのが簡単
+
+
+== unicornctl.sh
+
+unicorn 再起動用ラッパー
+
+unicorn_rails.init.sh を使って再起動と、アプリケーションのリビルドを行う
+
+=== restart : 再起動
+
+再起動は、単に unicorn_rails.init.sh の restart を呼び出す。
+これをやると、新しい master が起動するまでは 503 Bad Gateway エラーとなる。
+また、新しい worker の準備ができるまで、クライアントは待たされる
+
+=== dup, replace, cancel : リビルド
+
+worker を動かしたまま、アプリケーションを更新する
+
+注) DB のマイグレーションが含まれる場合は、リビルドではなく、再起動を行うこと
+
+リビルドは、以下の手順で行う
+
+1. dup : unicorn_rails.init.sh の dup, rebuild, winch-old を実行
+ * 失敗した場合は新しい master を停止して終了
+ * このあと、アプリケーションが正しく動くかテストする
+2. replace : 古い master を停止
+3. cancel : 新しい master を停止
+
+3は、 dup の後でアプリケーションがうまく動かなかった場合に行う
+(staging でちゃんとテストすれば、 production で cancel しなければならないはめにはならないはず)
+
+cancel する場合、ソースコードも元に戻すべき。
+preload_app = true なので、アプリケーションのコード自体は元のやつを使用するようになるが、 css, js, 画像などを元に戻さないと表示上誤作動を起こす可能性がある
+
+また、 DB のマイグレーションは、原理的に「元の状態に戻す」ことは不可能
+(元とできるだけおなじになるように変更することしかできない)
+このため、マイグレーションを含む場合は、 cancel しても、動作しない可能性があるので、マイグレーションを含む場合は「再起動」を行うこと
+
