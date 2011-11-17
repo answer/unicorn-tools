@@ -24,6 +24,21 @@ unicorn 起動スクリプト
  ./unicorn_rails.init.sh ok
  ./unicorn_rails.init.sh cancel
 
+開発環境では start, stop, restart を使用する
+
+stop → start では、新しい unicorn が立ち上がるまで、 nginx は 503 エラーとなる
+
+
+本番環境では dup, ok, cancel を用いる
+
+dup → ok で、ダウンタイムなしの更新となる
+
+互換性のない変更を行った場合は、 dup コマンドの中で、 unicorn が再起動してから古い worker が終了するまでは、アプリケーションはエラーになる
+
+互換性のない変更が含まれる場合は、サーバーにアクセスがなくなる時間を選んで更新を行わなければならない
+
+アプリケーションのエラーによって、ゴミが後に残ったりするような場合は restart を使って、再起動中のアクセスを拒否するべき
+
 
 === start
 
