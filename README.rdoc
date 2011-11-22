@@ -2,19 +2,25 @@
 
 rack アプリケーション用 http サーバー unicorn を動かすときに使うツール群
 
+サーバーの設定ファイルと起動スクリプトなので、直接使用するのではなくてコピペして使うこと
+
 
 == unicorn.config.rb
 
 unicorn の設定
+
+working_directory の設定を環境ごとに設定する必要がある
 
 
 == unicorn_rails.init.sh
 
 unicorn 起動スクリプト
 
-起動、停止など、 unicorn_rails の起動に必要なコマンドを提供する
+unicorn 設定ファイルのパスを適切に設定する必要がある
+(デフォルトは config/unicorn.rb なので、この相対パスに設定ファイルが存在すれば良い)
 
- ./unicorn_rails.init.sh status
+
+起動、停止など、 unicorn_rails の起動に必要なコマンドを提供する
 
  ./unicorn_rails.init.sh start
  ./unicorn_rails.init.sh stop
@@ -24,9 +30,11 @@ unicorn 起動スクリプト
  ./unicorn_rails.init.sh ok
  ./unicorn_rails.init.sh cancel
 
+ ./unicorn_rails.init.sh status [-v|-vv|-vvv]
+
 開発環境では start, stop, restart を使用する
 
-stop → start では、新しい unicorn が立ち上がるまで、 nginx は 503 エラーとなる
+restart(stop → start) では、新しい unicorn が立ち上がるまで、 nginx は 503 エラーとなる
 
 
 本番環境では dup, ok, cancel を用いる
@@ -37,7 +45,7 @@ dup → ok で、ダウンタイムなしの更新となる
 
 互換性のない変更が含まれる場合は、サーバーにアクセスがなくなる時間を選んで更新を行わなければならない
 
-アプリケーションのエラーによって、ゴミが後に残ったりするような場合は restart を使って、再起動中のアクセスを拒否するべき
+アプリケーションのエラーによって、ゴミが残ったりするような場合は restart を使って、再起動中のアクセスを拒否するべき
 
 
 === start
@@ -62,10 +70,7 @@ pid.oldbin のプロセスが存在する場合、キャンセルされる
 
 stop && start
 
-
-=== status
-
-pid ファイルのプロセスの状態を表示する
+stop 時に pid ファイルが削除されない場合に無限ループするのは仕様
 
 
 === dup
@@ -97,3 +102,16 @@ pid.oldbin のプロセスに QUIT シグナルを送信する
 そんなプロセスが無い場合はキャンセルされる
 
 pid.oldbin のプロセスが存在しない場合、キャンセルされる
+
+pid ファイルが存在せず、 pid.oldbin の worker が存在していた場合に無限ループするのは仕様
+
+
+=== status
+
+pid ファイルのプロセスの状態を表示する
+
+* 通常 : master の PID と STAT のみ
+* -v : master の詳細表示
+* -vv : worker の詳細表示
+* -vvv : master と worker の詳細表示
+
